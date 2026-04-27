@@ -1,18 +1,18 @@
 import { useMemo } from 'react';
 
-const TOTAL_USERS = 5;
 const SLOT_HOURS = 1; // 1시간 단위
 
 /**
- * 5명 전원이 비어있는 시간대(교집합 여유 시간) 계산
- * @param {Array} events - 전체 이벤트 배열 [{ user_id, start_at, end_at, is_allday }]
+ * 선택된 사람들의 비어있는 시간대(교집합 여유 시간) 계산
+ * @param {Array} events - 전체 이벤트 배열
  * @param {string} viewStart - 뷰 시작 ISO string
  * @param {string} viewEnd   - 뷰 종료 ISO string
+ * @param {Array} selectedUserIds - 여유 시간을 확인할 사용자 ID 배열
  * @returns {{ start: Date, end: Date }[]} - 교집합 여유 시간 슬롯 목록
  */
-export function useFreeTimes(events, viewStart, viewEnd) {
+export function useFreeTimes(events, viewStart, viewEnd, selectedUserIds = []) {
   const freeTimes = useMemo(() => {
-    if (!viewStart || !viewEnd || !events.length) return [];
+    if (!viewStart || !viewEnd || !events.length || selectedUserIds.length === 0) return [];
 
     const rangeStart = new Date(viewStart);
     const rangeEnd = new Date(viewEnd);
@@ -23,6 +23,9 @@ export function useFreeTimes(events, viewStart, viewEnd) {
 
     const slots = [];
     const cursor = new Date(rangeStart);
+
+    // 선택된 사람 집합
+    const selectedSet = new Set(selectedUserIds);
 
     // 날짜 순회
     while (cursor < rangeEnd) {
@@ -39,6 +42,9 @@ export function useFreeTimes(events, viewStart, viewEnd) {
         // 이 슬롯에 겹치는 이벤트가 있는 사용자 수 계산
         const busyUserIds = new Set();
         events.forEach(ev => {
+          // '우리 약속'이거나 선택되지 않은 사용자의 일정은 여유 시간 계산 시 무시
+          if (ev.is_meeting || !selectedSet.has(ev.user_id)) return;
+
           if (ev.is_allday) {
             busyUserIds.add(ev.user_id);
             return;
@@ -51,7 +57,7 @@ export function useFreeTimes(events, viewStart, viewEnd) {
           }
         });
 
-        // 5명 전원이 비어있는 슬롯만 수집
+        // 선택된 사용자 중 아무도 안 바쁘면 슬롯 수집
         if (busyUserIds.size === 0) {
           slots.push({ start: new Date(slotStart), end: new Date(slotEnd) });
         }
@@ -78,7 +84,8 @@ export function useFreeTimes(events, viewStart, viewEnd) {
     });
 
     return merged;
-  }, [events, viewStart, viewEnd]);
+  }, [events, viewStart, viewEnd, selectedUserIds]);
 
   return freeTimes;
 }
+

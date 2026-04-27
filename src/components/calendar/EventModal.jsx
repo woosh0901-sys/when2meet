@@ -7,6 +7,8 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
   const [isAllday, setIsAllday] = useState(false);
+  const [isMeeting, setIsMeeting] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -17,12 +19,16 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
       setStartAt(toLocalInput(event.start));
       setEndAt(toLocalInput(event.end));
       setIsAllday(event.allDay || false);
+      setIsMeeting(event.is_meeting || false);
+      setRepeatWeeks(1); // 수정 모드에서는 반복 횟수를 조정하지 않음
     } else if (defaultStart) {
       setTitle('');
       setMemo('');
       setStartAt(toLocalInput(defaultStart.start));
       setEndAt(toLocalInput(defaultStart.end));
       setIsAllday(false);
+      setIsMeeting(false);
+      setRepeatWeeks(1);
     }
   }, [mode, event, defaultStart]);
 
@@ -38,6 +44,8 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
       start_at: new Date(startAt).toISOString(),
       end_at: new Date(endAt).toISOString(),
       is_allday: isAllday,
+      is_meeting: isMeeting,
+      repeatWeeks: mode === 'create' ? parseInt(repeatWeeks) : 1,
     });
     setSubmitting(false);
   };
@@ -47,7 +55,7 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md glass-card-strong p-6 animate-slide-up">
+      <div className="w-full max-w-md glass-card-strong p-6 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-white">
@@ -60,7 +68,7 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {/* 제목 */}
           <div>
             <label className="block text-xs text-surface-500 mb-1.5">제목 *</label>
@@ -74,17 +82,31 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
             />
           </div>
 
-          {/* 하루 종일 */}
-          <label className="flex items-center gap-3 cursor-pointer">
-            <div
-              onClick={() => setIsAllday(v => !v)}
-              className={`w-10 h-6 rounded-full transition-colors duration-200 flex items-center px-1
-                ${isAllday ? 'bg-brand-500' : 'bg-white/10'}`}
-            >
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${isAllday ? 'translate-x-4' : 'translate-x-0'}`} />
-            </div>
-            <span className="text-sm text-surface-300">하루 종일</span>
-          </label>
+          <div className="flex items-center justify-between gap-4 bg-surface-800/50 p-3 rounded-xl border border-white/5">
+            {/* 하루 종일 */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                onClick={() => setIsAllday(v => !v)}
+                className={`w-10 h-6 rounded-full transition-colors duration-200 flex items-center px-1
+                  ${isAllday ? 'bg-brand-500' : 'bg-white/10'}`}
+              >
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${isAllday ? 'translate-x-4' : 'translate-x-0'}`} />
+              </div>
+              <span className="text-sm font-medium text-surface-300">하루 종일</span>
+            </label>
+
+            {/* 우리 약속 (모임) */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <span className="text-sm font-medium text-rose-300">우리 약속</span>
+              <div
+                onClick={() => setIsMeeting(v => !v)}
+                className={`w-10 h-6 rounded-full transition-colors duration-200 flex items-center px-1
+                  ${isMeeting ? 'bg-rose-500' : 'bg-white/10'}`}
+              >
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-200 ${isMeeting ? 'translate-x-4' : 'translate-x-0'}`} />
+              </div>
+            </label>
+          </div>
 
           {/* 시작/종료 시간 */}
           {!isAllday && (
@@ -128,6 +150,29 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
             </div>
           )}
 
+          {/* 주간 반복 (새 일정일 때만 표시) */}
+          {mode === 'create' && (
+            <div>
+              <label className="block text-xs text-surface-500 mb-1.5">매주 반복 (생성할 주 수)</label>
+              <select
+                value={repeatWeeks}
+                onChange={e => setRepeatWeeks(e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="1">반복 안 함 (이번 주만)</option>
+                <option value="2">2주 (총 2회)</option>
+                <option value="4">4주 (약 1달)</option>
+                <option value="8">8주 (약 2달)</option>
+                <option value="12">12주 (약 3달)</option>
+              </select>
+              {repeatWeeks > 1 && (
+                <p className="mt-1.5 text-xs text-brand-300">
+                  동일한 요일/시간에 일정이 총 {repeatWeeks}개 개별적으로 생성됩니다.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* 메모 */}
           <div>
             <label className="block text-xs text-surface-500 mb-1.5">메모 (선택)</label>
@@ -152,7 +197,7 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 mt-6">
+        <div className="flex gap-2 mt-6 pt-4 border-t border-white/5">
           {mode === 'edit' && (
             <button
               onClick={onDelete}
