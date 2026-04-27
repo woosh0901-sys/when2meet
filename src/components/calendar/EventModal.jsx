@@ -32,6 +32,11 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
     }
   }, [mode, event, defaultStart]);
 
+  const handleSave = async () => {
+    if (!title.trim()) { setError('제목을 입력해 주세요.'); return; }
+    if (!startAt || !endAt) { setError('시작/종료 시간을 입력해 주세요.'); return; }
+    if (new Date(startAt) >= new Date(endAt)) { setError('종료 시간이 시작 시간보다 늦어야 합니다.'); return; }
+
     setSubmitting(true);
 
     // 일정 분리 로직 (자정 넘기는 일정)
@@ -82,6 +87,7 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
     // EventModal의 onSave는 기본적으로 객체 하나를 받지만, 배열을 받도록 CalendarView를 수정해야 함
     await onSave(payloads);
     setSubmitting(false);
+  };
 
   return (
     <div
