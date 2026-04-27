@@ -231,27 +231,35 @@ export default function LoginForm() {
 /* ─── Sub Components ─── */
 
 function PinInput({ value, onChange, onComplete }) {
+  // 항상 4칸 배열로 관리
+  const digits = value.padEnd(4, ' ').split('').slice(0, 4);
+
   const handleChange = (i, e) => {
     const val = e.target.value.replace(/\D/g, '');
     if (val.length <= 1) {
-      const arr = value.split('');
-      arr[i] = val;
-      const newVal = arr.join('').slice(0, 4);
+      const newDigits = [...digits];
+      newDigits[i] = val || ' ';
+      // 공백 제거 후 실제 입력된 숫자만 추출
+      const newVal = newDigits.map(d => d.trim()).join('');
       onChange(newVal);
       // Auto-focus next
       if (val && i < 3) {
         e.target.parentElement.children[i + 1]?.focus();
       }
-      // 4자리 완성 시 콜백
-      if (newVal.length === 4 && onComplete) {
-        setTimeout(onComplete, 100);
-      }
     }
   };
 
   const handleKeyDown = (i, e) => {
-    if (e.key === 'Backspace' && !value[i] && i > 0) {
-      e.target.parentElement.children[i - 1]?.focus();
+    if (e.key === 'Backspace') {
+      if (!value[i] && i > 0) {
+        // 현재 칸이 비어있으면 이전 칸으로 이동
+        const newDigits = [...digits];
+        newDigits[i - 1] = ' ';
+        const newVal = newDigits.map(d => d.trim()).join('');
+        onChange(newVal);
+        e.target.parentElement.children[i - 1]?.focus();
+        e.preventDefault();
+      }
     }
   };
 
