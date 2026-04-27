@@ -191,7 +191,7 @@ export default function CalendarView() {
               })}
             </div>
 
-            {/* 다른 사람 일정 숨기고 가능한 시간만 보기 토글 버튼 */}
+            {/* 모든 개인 일정 숨기고 가능한 시간만 보기 토글 버튼 */}
             <div className="flex items-center px-2">
               <label className="flex items-center gap-2 text-sm text-surface-300 cursor-pointer hover:text-white transition-colors">
                 <input
@@ -200,7 +200,7 @@ export default function CalendarView() {
                   onChange={(e) => setShowOnlyFreeTimes(e.target.checked)}
                   className="rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500 focus:ring-offset-surface-900 w-4 h-4 cursor-pointer"
                 />
-                다른 사람 일정 숨기고 가능한 시간만 보기
+                모든 개인 일정 숨기고 가능한 시간만 보기
               </label>
             </div>
           </div>
@@ -313,8 +313,8 @@ function buildCalendarEvents(events, users, currentUser, freeTimes, viewMode, se
       if (!isMe && !isMeeting) return;
     } else {
       // 그룹 일정 탭: 
-      // '다른 사람 일정 숨기기' 체크시, 타인 일정(모임 제외) 숨김
-      if (showOnlyFreeTimes && !isMe && !isMeeting) return;
+      // '가능한 시간만 보기' 체크시, 모든 개인 일정(모임 제외) 숨김
+      if (showOnlyFreeTimes && !isMeeting) return;
       // 선택되지 않은 사람의 일정(모임 제외) 숨김
       if (!selectedSet.has(ev.user_id) && !isMeeting) return;
     }
