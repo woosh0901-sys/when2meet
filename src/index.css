@@ -163,3 +163,8 @@
 }
 .fc-theme-standard td, .fc-theme-standard th { border-color: var(--fc-border-color); }
 .fc .fc-highlight { background: rgba(138, 180, 248, 0.15) !important; }
+
+/* Mobile enhancements */
+@media (max-width: 640px) {
+  .fc .fc-timegrid-slot { height: 64px; }
+}
