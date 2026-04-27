@@ -172,6 +172,7 @@ export default function CalendarView() {
           onClose={() => setModal(m => ({ ...m, open: false }))}
         />
       )}
+      </div>
     </div>
   );
 }
