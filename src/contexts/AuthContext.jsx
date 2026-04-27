@@ -5,77 +5,62 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = sessionStorage.getItem('schedule-sync-user');
+    const saved = sessionStorage.getItem('calsync-user');
     return saved ? JSON.parse(saved) : null;
   });
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 전체 사용자 목록 로드 (pin 존재 여부 포함)
+// 사용자별 기본 색상 (DB에 color 컬럼 없을 때 fallback)
+const DEFAULT_COLORS = ['#4c6ef5', '#20c997', '#f59f00', '#e64980', '#7950f2'];
+
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('users')
       .select('id, name, pin')
-      .order('name');
-    
-    if (error) {
-      console.error('Failed to fetch users:', error);
-    }
-    // pin 값 자체는 노출하지 않고, 설정 여부만 전달
-    const mapped = (data || []).map(u => ({
+      .order('created_at');
+    if (error) console.error('Failed to fetch users:', error);
+    const mapped = (data || []).map((u, i) => ({
       id: u.id,
       name: u.name,
+      color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
       hasPin: !!u.pin,
     }));
     setUsers(mapped);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  // PIN 설정 (최초 1회)
   const setupPin = useCallback(async (userId, pin) => {
-    const { error } = await supabase
-      .from('users')
-      .update({ pin })
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Failed to set PIN:', error);
-      return { success: false, message: 'PIN 설정 중 오류가 발생했습니다.' };
-    }
-
-    const userData = { id: userId, name: users.find(u => u.id === userId)?.name };
+    const { error } = await supabase.from('users').update({ pin }).eq('id', userId);
+    if (error) return { success: false, message: 'PIN 설정 중 오류가 발생했습니다.' };
+    const found = users.find(u => u.id === userId);
+    const userData = { id: userId, name: found?.name, color: found?.color };
     setUser(userData);
-    sessionStorage.setItem('schedule-sync-user', JSON.stringify(userData));
-    await fetchUsers(); // hasPin 갱신
+    sessionStorage.setItem('calsync-user', JSON.stringify(userData));
+    await fetchUsers();
     return { success: true };
   }, [users, fetchUsers]);
 
-  // PIN 로그인 (검증)
   const login = useCallback(async (userId, pin) => {
     const { data, error } = await supabase
-      .from('users')
-      .select('id, name')
-      .eq('id', userId)
-      .eq('pin', pin)
-      .single();
-
-    if (error || !data) {
-      return { success: false, message: 'PIN 번호가 올바르지 않습니다.' };
-    }
-
-    setUser(data);
-    sessionStorage.setItem('schedule-sync-user', JSON.stringify(data));
+      .from('users').select('id, name').eq('id', userId).eq('pin', pin).single();
+    if (error || !data) return { success: false, message: 'PIN 번호가 올바르지 않습니다.' };
+    
+    // fetchUsers와 동일하게 기본 색상 할당 (DB에 color 컬럼이 없을 때를 대비)
+    const userIndex = users.findIndex(u => u.id === userId);
+    const color = userIndex >= 0 ? users[userIndex].color : DEFAULT_COLORS[0];
+    
+    const userData = { ...data, color };
+    setUser(userData);
+    sessionStorage.setItem('calsync-user', JSON.stringify(userData));
     return { success: true };
-  }, []);
+  }, [users]);
 
-  // 로그아웃
   const logout = useCallback(() => {
     setUser(null);
-    sessionStorage.removeItem('schedule-sync-user');
+    sessionStorage.removeItem('calsync-user');
   }, []);
 
   return (
@@ -86,9 +71,7 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

@@ -1,41 +1,42 @@
 import { useAuth } from '../contexts/AuthContext';
-
-const COLORS = [
-  'from-brand-500 to-brand-600',
-  'from-emerald-500 to-teal-600', 
-  'from-amber-500 to-orange-600',
-  'from-rose-500 to-pink-600',
-  'from-violet-500 to-purple-600',
-];
+import UserLegend from './ui/UserLegend';
 
 export default function Header() {
-  const { user, users, logout } = useAuth();
-
-  const userIndex = users.findIndex(u => u.id === user?.id);
-  const gradient = COLORS[userIndex >= 0 ? userIndex : 0];
+  const { user, logout } = useAuth();
 
   return (
-    <header className="glass-card mx-4 mt-4 px-4 py-3 flex items-center justify-between animate-fade-in">
-      <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
-          <span className="text-white font-bold text-sm">
-            {user?.name?.[0]}
-          </span>
+    <header className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-surface-900/80 backdrop-blur-sm">
+      {/* Logo */}
+      <div className="flex items-center gap-2 mr-2">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-intersect-glow flex items-center justify-center shadow-sm">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-white">{user?.name}</p>
-          <p className="text-xs text-surface-500">가능한 날짜를 선택하세요</p>
-        </div>
+        <span className="font-bold text-sm text-white hidden sm:block">CalSync</span>
       </div>
 
-      <button
-        onClick={logout}
-        className="px-3 py-1.5 text-xs font-medium text-surface-400 hover:text-white 
-                   bg-white/5 hover:bg-white/10 rounded-lg border border-white/5
-                   transition-all duration-200"
-      >
-        로그아웃
-      </button>
+      {/* 범례 */}
+      <div className="flex-1 overflow-x-auto">
+        <UserLegend />
+      </div>
+
+      {/* 사용자 정보 */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
+          style={{ backgroundColor: user?.color || '#4c6ef5' }}
+        >
+          {user?.name?.[0]}
+        </div>
+        <span className="text-sm text-white hidden sm:block">{user?.name}</span>
+        <button
+          onClick={logout}
+          className="ml-1 px-2.5 py-1.5 text-xs font-medium text-surface-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/5 transition-all"
+        >
+          로그아웃
+        </button>
+      </div>
     </header>
   );
 }
