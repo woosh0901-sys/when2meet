@@ -141,6 +141,11 @@
 }
 .fc .fc-event-main { padding: 0; }
 .fc .event-others { opacity: 0.6 !important; }
+.fc .event-meeting { 
+  opacity: 1 !important; 
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.5) !important;
+  font-weight: bold;
+}
 .fc .event-free { opacity: 1 !important; border-radius: 0 !important; border: none !important; box-shadow: none; }
 
 .fc .fc-daygrid-day-number { color: #e8eaed; text-decoration: none; font-size: 0.8rem; padding: 4px 8px; }

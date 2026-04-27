@@ -17,13 +17,13 @@ const DEFAULT_COLORS = ['#4c6ef5', '#20c997', '#f59f00', '#e64980', '#7950f2'];
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, pin')
+      .select('id, name, pin, color')
       .order('created_at');
     if (error) console.error('Failed to fetch users:', error);
     const mapped = (data || []).map((u, i) => ({
       id: u.id,
       name: u.name,
-      color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
+      color: u.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length],
       hasPin: !!u.pin,
     }));
     setUsers(mapped);
@@ -45,12 +45,13 @@ const DEFAULT_COLORS = ['#4c6ef5', '#20c997', '#f59f00', '#e64980', '#7950f2'];
 
   const login = useCallback(async (userId, pin) => {
     const { data, error } = await supabase
-      .from('users').select('id, name').eq('id', userId).eq('pin', pin).single();
+      .from('users').select('id, name, color').eq('id', userId).eq('pin', pin).single();
     if (error || !data) return { success: false, message: 'PIN 번호가 올바르지 않습니다.' };
     
-    // fetchUsers와 동일하게 기본 색상 할당 (DB에 color 컬럼이 없을 때를 대비)
+    // DB의 color 우선, 없으면 fallback
     const userIndex = users.findIndex(u => u.id === userId);
-    const color = userIndex >= 0 ? users[userIndex].color : DEFAULT_COLORS[0];
+    const fallbackColor = userIndex >= 0 ? users[userIndex].color : DEFAULT_COLORS[0];
+    const color = data.color || fallbackColor;
     
     const userData = { ...data, color };
     setUser(userData);

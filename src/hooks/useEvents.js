@@ -16,7 +16,7 @@ export function useEvents(viewStart, viewEnd) {
     setLoading(true);
     const { data, error } = await supabase
       .from('events')
-      .select('id, user_id, title, memo, start_at, end_at, is_allday')
+      .select('id, user_id, title, memo, start_at, end_at, is_allday, is_meeting')
       .gte('start_at', viewStart)
       .lte('end_at', viewEnd)
       .order('start_at');
@@ -62,5 +62,12 @@ export function useEvents(viewStart, viewEnd) {
     return true;
   }, []);
 
-  return { events, loading, createEvent, updateEvent, deleteEvent, refetch: fetchEvents };
+  // 다중 일정 생성 (주간 반복용)
+  const createMultipleEvents = useCallback(async (payloads) => {
+    const { error } = await supabase.from('events').insert(payloads);
+    if (error) { console.error('createMultipleEvents error:', error); return false; }
+    return true;
+  }, []);
+
+  return { events, loading, createEvent, updateEvent, deleteEvent, createMultipleEvents, refetch: fetchEvents };
 }
