@@ -3,6 +3,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEvents } from '../../hooks/useEvents';
 import { useFreeTimes } from '../../hooks/useFreeTimes';
@@ -92,10 +94,39 @@ export default function CalendarView() {
   }, [modal, deleteEvent]);
 
   return (
-    <div className="h-full fc-wrapper">
-      <FullCalendar
-        ref={calendarRef}
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+    <div className="flex flex-col h-full">
+      {/* 모두가 가능한 여유 시간 요약 바 */}
+      {freeTimes.length > 0 ? (
+        <div className="shrink-0 mb-3 px-4 py-3 glass-card rounded-xl flex items-center gap-4 overflow-x-auto custom-scrollbar">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-sm font-semibold text-white">모두 가능한 시간 ({freeTimes.length}) :</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {freeTimes.map((slot, i) => {
+              const dateStr = format(slot.start, 'M.d (EEE)', { locale: ko });
+              const timeStr = `${format(slot.start, 'HH:mm')} - ${format(slot.end, 'HH:mm')}`;
+              return (
+                <div key={i} className="shrink-0 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-300 text-xs font-medium whitespace-nowrap">
+                  {dateStr} <span className="opacity-70 ml-1">{timeStr}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="shrink-0 mb-3 px-4 py-3 glass-card rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-surface-600"></span>
+            <span className="text-sm text-surface-400">이번 주 모두가 가능한 시간이 없습니다.</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 fc-wrapper min-h-0">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
         headerToolbar={{
           left: 'prev,next today',
