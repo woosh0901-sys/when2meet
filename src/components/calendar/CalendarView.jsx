@@ -21,6 +21,9 @@ export default function CalendarView() {
   // 필터: 선택된 사용자 ID 목록
   const [selectedUsers, setSelectedUsers] = useState([]);
 
+  // 가능한 시간만 보기 토글 상태
+  const [showOnlyFreeTimes, setShowOnlyFreeTimes] = useState(false);
+
   // users 목록이 로드되면 기본적으로 전체 선택
   useEffect(() => {
     if (users && users.length > 0 && selectedUsers.length === 0) {
@@ -49,7 +52,7 @@ export default function CalendarView() {
   };
 
   // FullCalendar에 전달할 events 배열 구성
-  const calendarEvents = buildCalendarEvents(events, users, user, freeTimes, viewMode, selectedUsers);
+  const calendarEvents = buildCalendarEvents(events, users, user, freeTimes, viewMode, selectedUsers, showOnlyFreeTimes);
 
   // 빈 슬롯 클릭 → 일정 생성 모달
   const handleDateSelect = useCallback((info) => {
@@ -167,24 +170,39 @@ export default function CalendarView() {
           </button>
         </div>
 
-        {/* 그룹 일정일 때만 사용자 필터 표시 */}
+        {/* 그룹 일정일 때만 사용자 필터 및 옵션 표시 */}
         {viewMode === 'group' && (
-          <div className="flex items-center gap-2 px-2 pb-1 overflow-x-auto custom-scrollbar">
-            <span className="text-xs text-surface-400 shrink-0 mr-2">참여자 선택:</span>
-            {users.map(u => {
-              const isSelected = selectedUsers.includes(u.id);
-              return (
-                <button
-                  key={u.id}
-                  onClick={() => toggleUser(u.id)}
-                  className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all border
-                    ${isSelected ? 'bg-surface-700 text-white border-surface-600' : 'bg-surface-800/50 text-surface-500 border-surface-700/50 opacity-50'}`}
-                >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: u.color }}></span>
-                  {u.name}
-                </button>
-              );
-            })}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 px-2 pb-1 overflow-x-auto custom-scrollbar">
+              <span className="text-xs text-surface-400 shrink-0 mr-2">참여자 선택:</span>
+              {users.map(u => {
+                const isSelected = selectedUsers.includes(u.id);
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => toggleUser(u.id)}
+                    className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all border
+                      ${isSelected ? 'bg-surface-700 text-white border-surface-600' : 'bg-surface-800/50 text-surface-500 border-surface-700/50 opacity-50'}`}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: u.color }}></span>
+                    {u.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 다른 사람 일정 숨기고 가능한 시간만 보기 토글 버튼 */}
+            <div className="flex items-center px-2">
+              <label className="flex items-center gap-2 text-sm text-surface-300 cursor-pointer hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  checked={showOnlyFreeTimes}
+                  onChange={(e) => setShowOnlyFreeTimes(e.target.checked)}
+                  className="rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500 focus:ring-offset-surface-900 w-4 h-4 cursor-pointer"
+                />
+                다른 사람 일정 숨기고 가능한 시간만 보기
+              </label>
+            </div>
           </div>
         )}
       </div>
@@ -279,7 +297,7 @@ export default function CalendarView() {
 }
 
 /** FullCalendar events 배열 구성 */
-function buildCalendarEvents(events, users, currentUser, freeTimes, viewMode, selectedUsers) {
+function buildCalendarEvents(events, users, currentUser, freeTimes, viewMode, selectedUsers, showOnlyFreeTimes) {
   const userMap = Object.fromEntries(users.map(u => [u.id, u]));
   const result = [];
   const selectedSet = new Set(selectedUsers);
@@ -294,7 +312,10 @@ function buildCalendarEvents(events, users, currentUser, freeTimes, viewMode, se
       // 내 일정 탭: 내 일정 + 모임 일정만 표시
       if (!isMe && !isMeeting) return;
     } else {
-      // 그룹 일정 탭: 선택된 사람들의 일정 + 모임 일정 표시
+      // 그룹 일정 탭: 
+      // '다른 사람 일정 숨기기' 체크시, 타인 일정(모임 제외) 숨김
+      if (showOnlyFreeTimes && !isMe && !isMeeting) return;
+      // 선택되지 않은 사람의 일정(모임 제외) 숨김
       if (!selectedSet.has(ev.user_id) && !isMeeting) return;
     }
 
