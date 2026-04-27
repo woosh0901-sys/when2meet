@@ -32,23 +32,56 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
     }
   }, [mode, event, defaultStart]);
 
-  const handleSave = async () => {
-    if (!title.trim()) { setError('제목을 입력해 주세요.'); return; }
-    if (!startAt || !endAt) { setError('시작/종료 시간을 입력해 주세요.'); return; }
-    if (new Date(startAt) >= new Date(endAt)) { setError('종료 시간이 시작 시간보다 늦어야 합니다.'); return; }
-
     setSubmitting(true);
-    await onSave({
-      title: title.trim(),
-      memo: memo.trim() || null,
-      start_at: new Date(startAt).toISOString(),
-      end_at: new Date(endAt).toISOString(),
-      is_allday: isAllday,
-      is_meeting: isMeeting,
-      repeatWeeks: mode === 'create' ? parseInt(repeatWeeks) : 1,
-    });
+
+    // 일정 분리 로직 (자정 넘기는 일정)
+    const startDate = new Date(startAt);
+    const endDate = new Date(endAt);
+    const payloads = [];
+
+    if (!isAllday && startDate.toDateString() !== endDate.toDateString()) {
+      // 1일차 23:59:59 까지
+      const endOfFirstDay = new Date(startDate);
+      endOfFirstDay.setHours(23, 59, 59, 999);
+      
+      // 2일차 00:00:00 부터
+      const startOfSecondDay = new Date(endDate);
+      startOfSecondDay.setHours(0, 0, 0, 0);
+
+      payloads.push({
+        title: title.trim(),
+        memo: memo.trim() || null,
+        start_at: startDate.toISOString(),
+        end_at: endOfFirstDay.toISOString(),
+        is_allday: isAllday,
+        is_meeting: isMeeting,
+        repeatWeeks: mode === 'create' ? parseInt(repeatWeeks) : 1,
+      });
+
+      payloads.push({
+        title: title.trim(),
+        memo: memo.trim() || null,
+        start_at: startOfSecondDay.toISOString(),
+        end_at: endDate.toISOString(),
+        is_allday: isAllday,
+        is_meeting: isMeeting,
+        repeatWeeks: mode === 'create' ? parseInt(repeatWeeks) : 1,
+      });
+    } else {
+      payloads.push({
+        title: title.trim(),
+        memo: memo.trim() || null,
+        start_at: startDate.toISOString(),
+        end_at: endDate.toISOString(),
+        is_allday: isAllday,
+        is_meeting: isMeeting,
+        repeatWeeks: mode === 'create' ? parseInt(repeatWeeks) : 1,
+      });
+    }
+
+    // EventModal의 onSave는 기본적으로 객체 하나를 받지만, 배열을 받도록 CalendarView를 수정해야 함
+    await onSave(payloads);
     setSubmitting(false);
-  };
 
   return (
     <div
@@ -159,11 +192,11 @@ export default function EventModal({ mode, event, defaultStart, onSave, onDelete
                 onChange={e => setRepeatWeeks(e.target.value)}
                 className="input-field text-sm"
               >
-                <option value="1">반복 안 함 (이번 주만)</option>
-                <option value="2">2주 (총 2회)</option>
-                <option value="4">4주 (약 1달)</option>
-                <option value="8">8주 (약 2달)</option>
-                <option value="12">12주 (약 3달)</option>
+                <option value="1" className="bg-surface-800 text-white">반복 안 함 (이번 주만)</option>
+                <option value="2" className="bg-surface-800 text-white">2주 (총 2회)</option>
+                <option value="4" className="bg-surface-800 text-white">4주 (약 1달)</option>
+                <option value="8" className="bg-surface-800 text-white">8주 (약 2달)</option>
+                <option value="12" className="bg-surface-800 text-white">12주 (약 3달)</option>
               </select>
               {repeatWeeks > 1 && (
                 <p className="mt-1.5 text-xs text-brand-300">

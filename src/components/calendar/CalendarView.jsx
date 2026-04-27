@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useEvents } from '../../hooks/useEvents';
 import { useFreeTimes } from '../../hooks/useFreeTimes';
 import EventModal from './EventModal';
+import SharedMemo from './SharedMemo';
 
 export default function CalendarView() {
   const { user, users } = useAuth();
@@ -104,33 +105,38 @@ export default function CalendarView() {
   }, [user, updateEvent]);
 
   // 저장 핸들러 (다중 생성 포함)
-  const handleSave = useCallback(async (payload) => {
-    const { repeatWeeks, ...eventData } = payload;
-    
+  const handleSave = useCallback(async (payloads) => {
     if (modal.mode === 'create') {
-      const baseEvent = { ...eventData, user_id: user.id };
+      const finalPayloads = [];
       
-      if (repeatWeeks && repeatWeeks > 1) {
-        // 주간 반복 생성
-        const payloads = [];
-        for (let i = 0; i < repeatWeeks; i++) {
-          const newStart = addWeeks(new Date(baseEvent.start_at), i);
-          const newEnd = addWeeks(new Date(baseEvent.end_at), i);
-          payloads.push({
-            ...baseEvent,
-            start_at: newStart.toISOString(),
-            end_at: newEnd.toISOString(),
-          });
+      for (const payload of payloads) {
+        const { repeatWeeks, ...eventData } = payload;
+        const baseEvent = { ...eventData, user_id: user.id };
+        
+        if (repeatWeeks && repeatWeeks > 1) {
+          // 주간 반복 생성
+          for (let i = 0; i < repeatWeeks; i++) {
+            const newStart = addWeeks(new Date(baseEvent.start_at), i);
+            const newEnd = addWeeks(new Date(baseEvent.end_at), i);
+            finalPayloads.push({
+              ...baseEvent,
+              start_at: newStart.toISOString(),
+              end_at: newEnd.toISOString(),
+            });
+          }
+        } else {
+          finalPayloads.push(baseEvent);
         }
-        await createMultipleEvents(payloads);
-      } else {
-        await createEvent(baseEvent);
       }
+      
+      await createMultipleEvents(finalPayloads);
     } else {
+      // edit 모드에서는 페이로드 배열의 첫 번째 요소만 사용
+      const { repeatWeeks, ...eventData } = payloads[0];
       await updateEvent(modal.event.id, eventData);
     }
     setModal(m => ({ ...m, open: false }));
-  }, [modal, user, createEvent, updateEvent, createMultipleEvents]);
+  }, [modal, user, updateEvent, createMultipleEvents]);
 
   const handleDelete = useCallback(async () => {
     if (modal.event?.id) await deleteEvent(modal.event.id);
@@ -182,6 +188,9 @@ export default function CalendarView() {
           </div>
         )}
       </div>
+
+      {/* 공유 메모장 */}
+      <SharedMemo />
 
       {/* 여유 시간 요약 바 (그룹 모드에서만 표시) */}
       {viewMode === 'group' && (
@@ -304,8 +313,8 @@ function buildCalendarEvents(events, users, currentUser, freeTimes, viewMode, se
       borderColor = owner?.color || '#4c6ef5';
       opacity = 1;
     } else {
-      // 타인 일정 (그룹 탭에서)
-      title = `${owner?.name} (바쁨)`;
+      // 타인 일정 (그룹 탭에서) - 프라이버시 보호를 위해 이름 숨김
+      title = `(바쁨)`;
       backgroundColor = owner?.color || '#6c757d';
       borderColor = owner?.color || '#6c757d';
       opacity = 0.5; // 약간 투명하게
