@@ -1,5 +1,5 @@
 -- ============================================
--- ScheduleSync — Supabase 테이블 생성 스크립트
+-- ScheduleSync — Supabase 테이블 생성 스크립트 (통합본)
 -- Supabase Dashboard > SQL Editor 에서 실행하세요
 -- ============================================
 
@@ -7,6 +7,7 @@
 CREATE TABLE public.users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
+  pin TEXT DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -37,6 +38,9 @@ ALTER TABLE public.available_dates ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow read user names"
   ON public.users FOR SELECT USING (true);
+
+CREATE POLICY "Allow update user pin"
+  ON public.users FOR UPDATE USING (true) WITH CHECK (true);
 
 CREATE POLICY "Allow read all dates"
   ON public.available_dates FOR SELECT USING (true);
